@@ -229,7 +229,7 @@ async function activateCheats() {
   }
 
   if (!document.querySelector('[data-control="Map"]')) {
-    alert("Cheats can only be initiated while in game (Versus Mode)!");
+    alert("[EVILWEB] Cheat activated, love you Vlad! Join Versus Game!");
     return;
   }
 
