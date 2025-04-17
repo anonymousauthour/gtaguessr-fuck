@@ -265,7 +265,7 @@ async function activateCheats() {
     document.body.firstChild,
   );
 
-  changeCopyrightText("Versus Mode Cheats Activated");
+  changeCopyrightText("[EVILWEB] Working");
 }
 
 activateCheats();
