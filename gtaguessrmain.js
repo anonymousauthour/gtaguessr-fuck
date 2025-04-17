@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         GTAGuessr Versus Helper (Manual Click)
-// @namespace    http://tampermonkey.net/
-// @version      1.1-manual
-// @description  Finds correct location in Versus mode, centers map, requires manual click & submit. Based on public code.
-// @author       Pyrite (Modified)
-// @match        *://*.gtaguessr.com/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 
@@ -18,19 +8,15 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Checks if it looks like Normal Mode based on UI elements (used for initial check)
     function isInNormalMode() {
-      var infoDiv = document.querySelector("div.info"); // Check for the main info panel
+      var infoDiv = document.querySelector("div.info"); 
       if (infoDiv) {
-        // Versus mode has a different structure inside div.info than normal mode usually
-        var totalDiv = infoDiv.querySelector("div.total"); // Normal mode often has this for score total
-        return !!totalDiv; // If totalDiv exists, assume Normal Mode
+        var totalDiv = infoDiv.querySelector("div.total"); 
+        return !!totalDiv; 
       }
-      return false; // If infoDiv doesn't exist, unlikely to be in a standard game mode view
+      return false; 
     }
 
-    // This function simulates a click, but we will NOT be calling it automatically anymore.
-    // It remains here in case needed for other purposes or future changes.
     function clickMapCenter() {
       try {
           const panelElement = document.querySelector('[data-control="Panel"]');
@@ -39,7 +25,7 @@
           const screenWidth = window.innerWidth;
           const remainingWidth = screenWidth - panelRect.width;
           const x = panelRect.width + remainingWidth / 2;
-          const y = window.innerHeight / 2 - 15; // Small offset up from true center
+          const y = window.innerHeight / 2 - 15; 
 
           const targetElement = document.elementFromPoint(x, y);
           if (!targetElement) { console.error("Target element for click not found at calculated center."); return; }
@@ -48,11 +34,10 @@
             bubbles: true,
             cancelable: true,
             view: window,
-            clientX: x, // Use calculated coords relative to viewport
+            clientX: x, 
             clientY: y,
-            // Many other properties can often be omitted for synthetic events
-            button: 0, // Primary button
-            buttons: 1, // Primary button down
+            button: 0, 
+            buttons: 1, 
           });
           targetElement.dispatchEvent(clickEvent);
           console.log("Simulated click at map center (X:", x, "Y:", y, ") on element:", targetElement);
@@ -61,7 +46,6 @@
       }
     }
 
-    // Fetches the location IDs for the current versus match
     async function getVersusLocations() {
       if (isBusy) {
         console.log("Busy getting locations, skipping.");
@@ -85,7 +69,7 @@
             method: "POST",
             body: JSON.stringify({
               lobbyId: lobbyID,
-              lobyUserId: lobbyUserID, // Note: Original script had typo 'lobyUserId', keeping it in case API expects it
+              lobyUserId: lobbyUserID, 
             }),
             headers: {
               "Content-Type": "application/json",
@@ -125,7 +109,6 @@
       const locationId = locationData.locationId;
       console.log(`Requesting coordinates for round ${id + 1} (Location ID: ${locationId})`);
 
-      // These seem less critical for the exploit to work, but we populate them anyway
       const randomSessionId = getRandomInt(10000000, 99999999).toString();
       const randomLobbyId = getRandomInt(10000000, 99999999).toString();
       const randomUserId = getRandomInt(555555, 999999).toString();
@@ -136,11 +119,11 @@
             body: JSON.stringify({
               sessionId: randomSessionId,
               locationId: locationId,
-              lat: `${getRandomInt(-7000, 7000)}.${getRandomInt(0, 99999)}`, // Junk Lat
-              lng: `${getRandomInt(-7000, 7000)}.${getRandomInt(0, 99999)}`, // Junk Lng (Corrected range from original script)
-              lobyId: randomLobbyId, // Original script used random ID here
-              lobyUserId: randomUserId, // Original script used random ID here
-              game: getRandomInt(1, 5).toString(), // Seems arbitrary
+              lat: `${getRandomInt(-7000, 7000)}.${getRandomInt(0, 99999)}`, 
+              lng: `${getRandomInt(-7000, 7000)}.${getRandomInt(0, 99999)}`,
+              lobyId: randomLobbyId, 
+              lobyUserId: randomUserId, 
+              game: getRandomInt(1, 5).toString(), 
             }),
             headers: {
               "Content-Type": "application/json",
@@ -152,7 +135,6 @@
           }
 
           response = await response.json();
-          // Extract the *correct* coordinates leaked by the API response
           const lat = response?.lat ?? 0;
           const lng = response?.lng ?? 0;
 
@@ -166,12 +148,10 @@
 
       } catch (error) {
           console.error("getLocationByID error:", error);
-          throw error; // Re-throw to be caught by setLocation
+          throw error;
       }
     }
 
-    // Finds the coordinates for the selected round, updates URL hash to center map.
-    // DOES NOT automatically place the marker anymore.
     async function setLocation(locationID) {
       if (isBusy) {
         console.log("Busy setting location, skipping.");
@@ -201,27 +181,20 @@
         return;
       }
 
-      // The magic: Update URL hash to force map repositioning
-      // The #5 likely signifies a state or round number the map code listens for
       window.location.hash = `5/${exactLocation.lat}/${exactLocation.lng}`;
       console.log(`Updated window.location.hash to: #5/${exactLocation.lat}/${exactLocation.lng}`);
 
       changeCopyrightText("Map centered! Place marker manually.");
 
-      // Wait for the map to likely finish panning due to hash change
       await new Promise((resolve) => {
-        setTimeout(resolve, 1500); // Reduced wait slightly, might need adjustment
+        setTimeout(resolve, 1500); 
       });
 
-      // *** REMOVED AUTOMATIC CLICK ***
-      // clickMapCenter(); // WE NO LONGER CALL THIS
 
-      // Restore visuals
       mapElement.style.filter = "grayscale(0) brightness(100%)";
       document.body.style.cursor = "inherit";
       isBusy = false;
 
-      // Final feedback - reminding user to click
       changeCopyrightText(
         `Round ${locationID + 1} centered. Click map & submit!`,
       );
@@ -253,22 +226,19 @@
         changeCopyrightText("Finding Locations...");
       }
 
-      // Hide the initial "Find Locations" button
       const findButton = document.getElementById("cheatFindLocations");
       if (findButton) findButton.style.display = 'none';
 
 
       try {
-        await getVersusLocations(); // Fetch the location IDs first
+        await getVersusLocations();
       } catch (e) {
-         // Error handled within getVersusLocations, but ensure button is re-shown if fetch failed
           if (findButton) findButton.style.display = 'block';
-        return; // Stop if locations couldn't be fetched
+        return; 
       }
 
-        // Only proceed if locations were actually found
       if (gameLocations.length === 0) {
-          if (findButton) findButton.style.display = 'block'; // Show button again if no locations
+          if (findButton) findButton.style.display = 'block';
           alert("Could not find any locations for this Versus lobby.");
           return;
       }
@@ -284,36 +254,31 @@
       const newElement = document.createElement("div");
       newElement.id = "cheatLocations";
       newElement.style.display = "grid";
-      newElement.style.gridTemplateColumns = `repeat(${gameLocations.length}, 1fr)`; // Adjust grid to actual number of rounds found
+      newElement.style.gridTemplateColumns = `repeat(${gameLocations.length}, 1fr)`; 
       newElement.style.columnGap = "5px";
       newElement.style.marginBottom = "5px";
 
-      // Create buttons for each round found
       gameLocations.forEach((location, index) => {
         const buttonElement = document.createElement("button");
         buttonElement.id = `cheatSetLocation${index}`;
         buttonElement.style.backgroundColor = "#f83849";
         buttonElement.style.border = "none";
-        buttonElement.style.padding = "10px 0"; // Adjusted padding
+        buttonElement.style.padding = "10px 0";
         buttonElement.style.width = "100%";
         buttonElement.style.fontWeight = "500";
         buttonElement.style.color = "white";
         buttonElement.style.fontSize = '14px';
         buttonElement.style.cursor = 'pointer';
-        // Use an event listener instead of new Function for better practice & scope handling
         buttonElement.addEventListener('click', () => setLocation(index));
-        buttonElement.textContent = `${index + 1}`; // Button text is the round number (1-based)
+        buttonElement.textContent = `${index + 1}`;
         newElement.appendChild(buttonElement);
       });
 
-      // Insert the row of buttons at the top of the panel
       targetElement.insertBefore(newElement, targetElement.firstChild);
     }
 
-    // Initial setup and activation button creation
     async function activateCheats() {
       console.log("Activating Versus Helper...");
-      // Basic environment checks
       if (window.location.host !== "gtaguessr.com") {
         alert("Unsupported website! Cheats only work on gtaguessr.com (Versus Mode)!");
         return;
@@ -329,7 +294,6 @@
         return;
       }
 
-      // Prevent multiple activations
        if (document.body.getAttribute("cheats-init") === "yes") {
         alert("Cheats already activated!");
         return;
@@ -338,36 +302,33 @@
       }
 
 
-      // Create the initial button to fetch locations
       const findLocationsCheatElement = document.createElement("button");
-      findLocationsCheatElement.id = "cheatFindLocations"; // Give it an ID for easier removal/hiding later
+      findLocationsCheatElement.id = "cheatFindLocations"; 
       findLocationsCheatElement.style.border = "none";
       findLocationsCheatElement.style.backgroundColor = "#f83849";
-      findLocationsCheatElement.style.padding = "10px 20px"; // Adjusted padding
+      findLocationsCheatElement.style.padding = "10px 20px"; /
       findLocationsCheatElement.style.fontWeight = "500";
       findLocationsCheatElement.style.color = "white";
-      findLocationsCheatElement.style.zIndex = "99999"; // Lowered z-index slightly
-      findLocationsCheatElement.style.bottom = "20px"; // Position lower
-      findLocationsCheatElement.style.position = "fixed"; // Use fixed positioning
+      findLocationsCheatElement.style.zIndex = "99999"; 
+      findLocationsCheatElement.style.bottom = "20px"; 
+      findLocationsCheatElement.style.position = "fixed"; 
       findLocationsCheatElement.style.right = "20px";
       findLocationsCheatElement.style.cursor = 'pointer';
       findLocationsCheatElement.style.borderRadius = '5px';
-      // Use event listener
       findLocationsCheatElement.addEventListener('click', getLocationsAndInitUI);
       findLocationsCheatElement.textContent = "Find Locations";
 
-      document.body.appendChild(findLocationsCheatElement); // Append to body
+      document.body.appendChild(findLocationsCheatElement); 
 
       changeCopyrightText("Versus Cheats Activated");
       console.log("Activation complete. Click 'Find Locations'.");
     }
 
     // --- Start Execution ---
-    // Use a slight delay or wait for document ready to ensure page elements exist
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', activateCheats);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        activateCheats();
     } else {
-        activateCheats(); // Already loaded
+        document.addEventListener('DOMContentLoaded', activateCheats);
     }
 
 })();
